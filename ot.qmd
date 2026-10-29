@@ -1,0 +1,12 @@
+---
+title: "Optimal Transport: An Applied Primer"
+author: "Phil Swatton"
+format: revealjs
+jupyter: python3
+---
+
+# Title Slide
+
+## Thing 1
+
+## Thing 2
