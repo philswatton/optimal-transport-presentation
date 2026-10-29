@@ -36,6 +36,7 @@
     }
   </style>
   <link rel="stylesheet" href="ot_files/libs/revealjs/dist/theme/quarto-2740581606dc327e82f18f789b69d8a0.css">
+  <link rel="stylesheet" href="assets/style.css">
   <link href="ot_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
   <link href="ot_files/libs/revealjs/plugin/reveal-menu/menu.css" rel="stylesheet">
   <link href="ot_files/libs/revealjs/plugin/reveal-menu/quarto-menu.css" rel="stylesheet">
@@ -144,16 +145,276 @@ Phil Swatton
 </div>
 
 </section>
+<section id="introduction" class="slide level2">
+<h2>Introduction</h2>
+<div class="columns">
+<div class="column" style="width:70%;">
+<ul>
+<li><span class="fragment" data-fragment-index="1"><strong>Optimal transport (OT)</strong> is the problem of finding the most efficient way to transform one distribution into another</span></li>
+<li><span class="fragment" data-fragment-index="2"><strong>Transportation theory</strong> is the subfield of mathematics concerned with this problem</span></li>
+<li><span class="fragment" data-fragment-index="3">Solutions to OT have applications in applied data science</span></li>
+<li><span class="fragment" data-fragment-index="4">This is because they can define a measure of distance between distributions</span></li>
+</ul>
+</div><div class="column" style="width:30%;">
+<div class="fragment" data-fragment-index="1">
+<p><img data-src="./assets/sand_pile_to_sandcastle_intro_slide_portrait.png"></p>
+</div>
+</div></div>
+</section>
 <section>
-<section id="title-slide" class="title-slide slide level1 center">
-<h1>Title Slide</h1>
+<section id="optimal-transport-declaratively" class="title-slide slide level1 center">
+<h1>Optimal Transport, Declaratively</h1>
 
 </section>
-<section id="thing-1" class="slide level2">
-<h2>Thing 1</h2>
+<section id="a-brief-primer-on-spaces" class="slide level2">
+<h2>A Brief Primer on Spaces</h2>
+<ul>
+<li>Textbooks on OT will talk about things like <em>measurable space</em>, <em>Borel space</em>, <em>Polish space</em>, <em>Hilbert space</em>, and <em>reproducing kernel Hilbert space</em> (RKHS), etc</li>
+<li>For today: a <strong>space</strong> <span class="math inline">\(\mathcal{X}\)</span> is a set of numbers or vectors where we have a sensible way to measure distances</li>
+</ul>
+<p><strong>Some assumptions:</strong></p>
+<ol type="1">
+<li>We have two features spaces <span class="math inline">\(\mathcal{X}_A\)</span> and <span class="math inline">\(\mathcal{X}_B\)</span></li>
+<li>These feature spaces have a shared distance metric <span class="math inline">\(d_{\mathcal{X}}(x, x')\)</span></li>
+<li>These features spaces have associated distributions <span class="math inline">\(P_A\)</span> and <span class="math inline">\(P_B\)</span> defined over <span class="math inline">\(\mathcal{X}_A\)</span> and <span class="math inline">\(\mathcal{X}_B\)</span> respectively</li>
+<li><span class="math inline">\(P_A\)</span> and <span class="math inline">\(P_B\)</span> have the same total mass (e.g.&nbsp;<span class="math inline">\(\int{dP_A(x)} = \int{dP_B(x')} = 1\)</span>)</li>
+</ol>
 </section>
-<section id="thing-2" class="slide level2">
-<h2>Thing 2</h2>
+<section id="monge-formulation" class="slide level2">
+<h2>Monge Formulation</h2>
+<div class="columns">
+<div class="column" style="width:70%;">
+<p>Gaspard Monge first formalised the OT problem in 1781</p>
+<div class="fragment">
+<p>Consider two spaces, <span class="math inline">\(\mathcal{X}_A\)</span> and <span class="math inline">\(\mathcal{X}_B\)</span>, with distributions <span class="math inline">\(P_A\)</span> and <span class="math inline">\(P_B\)</span>. The Monge formulation is:</p>
+</div>
+<div class="fragment">
+<p><span class="math display">\[ \inf_{T, T_{\#}P_A=P_B}{\int{c(x, T(x))dP_A(x)}} \]</span></p>
+</div>
+<ul>
+<li class="fragment"><span class="math inline">\(T\)</span> is the transport map <span class="math inline">\(\mathcal{X}_A \rightarrow \mathcal{X}_B\)</span></li>
+<li class="fragment"><span class="math inline">\(c(x, T(x))\)</span> is the cost of transporting from <span class="math inline">\(x\)</span> to <span class="math inline">\(T(x)\)</span></li>
+<li class="fragment"><span class="math inline">\(T_{\#}P_A=P_B\)</span> denotes that <span class="math inline">\(P_B\)</span> is the push-forward of <span class="math inline">\(P_A\)</span> under <span class="math inline">\(T\)</span></li>
+<li class="fragment">The integral is over <span class="math inline">\(P_A(x)\)</span>, we integrate with respect to <span class="math inline">\(P_A(x)\)</span></li>
+<li class="fragment">If <span class="math inline">\(P_A(x)\)</span> is a probability distribution then we could write this as <span class="math inline">\(\inf_{T, T_{\#}P_A=P_B}{\int{c(x, T(x))P_A(x)dx}}\)</span></li>
+</ul>
+<!--
+
+1. Every $x \in \mathcal{X}_A$ maps onto exactly one $x' \in \mathcal{X}_B$
+2. The output distribution of applying the transport map $T$ to $P_A$ assigns the same probability to each point in $\mathcal{X}_B$ as $P_B$
+
+$c$ is a cost function which defines the cost of transporting from $x$ to $T(x)$ under the transport map $T$. The integral (a brief reminder for my future self to think of integrals as continuous sums) is over $P_A(x)$ and not $x$ so that each cost $c(x, T(x))$ is weighed by the probability mass in $P_A(x)$ -- locations with more mass contribute more to the overall cost. If $P_A(x)$ is a probability distribution (which we shall denote with a lower case $p$), then we would be able to straightforwardly write
+
+$$ \inf_{T, T_{\#}p_A=p_B}{\int{c(x, T(x))p_A(x)dx}} $$
+
+A map $T^\*$ that is a minimiser[^infimum] of the overall cost is called the _optimal transport map_. However, such a map may not exist in the Monge formulation (e.g. where we want to transport a single point into two points, as mass splitting is not allowed). -->
+</div><div class="column" style="width:30%;">
+<p><img data-src="./assets/Gaspard_monge_litho_delpech.jpg"></p>
+</div></div>
+</section>
+<section id="kantorovich-formulation" class="slide level2">
+<h2>Kantorovich Formulation</h2>
+<div class="columns">
+<div class="column" style="width:70%;">
+<p>In 1942, Leonid Kantorovich developed a new formulation of OT. This avoids the problem that a transport map may not exist.</p>
+<p><span class="math display">\[ \inf_{\pi \in \Pi(P_A, P_B)}{\int{c(x,x')d\pi(x, x')}} \]</span></p>
+<ul>
+<li><span class="math inline">\(\Pi(P_A, P_B)\)</span> denotes the set of all possible joint distributions <span class="math inline">\(\pi\)</span> for <span class="math inline">\((\mathcal{X}_A, \mathcal{X}_B)\)</span> with marginal distributions <span class="math inline">\(P_A\)</span> and <span class="math inline">\(P_B\)</span></li>
+<li>The integral computes the cost weighted by the probability mass, but this time weights by the mass in the joint distribution, with <span class="math inline">\(x\)</span> being drawn from <span class="math inline">\(\mathcal{X}_A\)</span> and <span class="math inline">\(x'\)</span> being drawn from <span class="math inline">\(\mathcal{X}_B\)</span></li>
+<li>A minimiser <span class="math inline">\(\pi^*\)</span> exists for every Kantorovich OT problem and is called the <em>optimal transport plan</em> or <em>optimal transport coupling</em></li>
+</ul>
+<!-- For a long time the Monge formulation of the problem was where things rested. Eventually, in 1942, the Soviet mathematician and economist Leonid Kantorovich[^kantorovich] developed a new formulation of optimal transport[^translocation], which avoids the problem in the Monge formulation that a transport map may not exist. It does this by allowing 'mass splitting', where instead of requiring that all the probability assigned to point $x \in \mathcal{X}_A$ goes to $x' \in \mathcal{X}_B$, it can instead be spread across different points in $\mathcal{X}_B$.
+
+The Kantorovich formulation achieves this by instead searching for a joint distribution $\pi$ with marginal distributions $P_A$ and $P_B$:
+
+$$ \inf_{\pi \in \Pi(P_A, P_B)}{\int{c(x,x')d\pi(x, x')}} $$
+
+Where $\Pi(P_A, P_B)$ denotes the set of all possible joint distributions $\pi$ for $(\mathcal{X}_A, \mathcal{X}_B)$ with marginal distributions $P_A$ and $P_B$. As before, the integral (another self-reminder to think of this is a continuous sum) computes the cost weighted by the probability mass, but this time weights by the mass in the joint distribution, with $x$ being drawn from $\mathcal{X}_A$ and $x'$ being drawn from $\mathcal{X}_B$.
+
+A minimiser $\pi^*$ exists for every Kantorovich optimal transport problem and is called the _optimal transport plan_ or _optimal transport coupling_. For the rest of this post, the Kantorovich formulation is the one I will consider. -->
+</div><div class="column" style="width:30%;">
+<p><img data-src="./assets/Leonid_Kantorovich_1975.jpg"></p>
+</div></div>
+</section>
+<section id="what-is-a-metric" class="slide level2">
+<h2>What is a Metric?</h2>
+<p>In mathematical terms, a metric is any function <span class="math inline">\(d : X \times X \rightarrow \mathbb{R}\)</span> which satisifies the following four axioms:</p>
+<ol type="1">
+<li>Non-negativity: <span class="math inline">\(d(x, y) \geq 0\)</span></li>
+<li>Identity of Indiscernibles: <span class="math inline">\(d(x, y) = 0\)</span> if and only if <span class="math inline">\(x = y\)</span></li>
+<li>Symmetry: <span class="math inline">\(d(x, y) = d(y, x)\)</span></li>
+<li>Triangle Inequality: <span class="math inline">\(d(x, z) \leq d(x, y) + d(y, z)\)</span></li>
+</ol>
+</section>
+<section id="wasserstein-distance" class="slide level2">
+<h2>Wasserstein Distance</h2>
+<ul>
+<li>Until now, we have left the cost function <span class="math inline">\(c\)</span> undefined</li>
+<li>However, if we choose a <em>distance metric</em> as our cost function, then the total cost of the Kantorovich formulation itself defines a distance metric</li>
+<li>If we choose <span class="math inline">\(c = \| x -  x' \|^p\)</span>, then the distance defined by the Kantorovich formulation becomes known as the <em>p-Wasserstein</em> distance</li>
+</ul>
+</section></section>
+<section>
+<section id="optimal-transport-imperatively" class="title-slide slide level1 center">
+<h1>Optimal Transport, Imperatively</h1>
+
+</section>
+<section id="how-do-i-compute-ot" class="slide level2">
+<h2>How do I compute OT?</h2>
+<div class="fragment">
+<p>A lot of the time…</p>
+</div>
+<div class="fragment">
+<div class="quarto-figure quarto-figure-center">
+<figure>
+<p><img data-src="./assets/the-neat-part.jpeg" class="quarto-figure quarto-figure-center" style="width:50.0%"></p>
+</figure>
+</div>
+</div>
+<div class="fragment">
+<p>For the most part, OT is not solved in the continuous case.</p>
+</div>
+<div class="fragment">
+<p>But there is one exception…</p>
+</div>
+</section>
+<section id="wasserstein-solution" class="slide level2">
+<h2>2-Wasserstein Solution</h2>
+<ul>
+<li>Assume <span class="math inline">\(P_A\)</span> and <span class="math inline">\(P_B\)</span> are both (multivariate) normal distributions</li>
+<li>An anlytic solution for compurting <span class="math inline">\(W_2\)</span> exists:</li>
+</ul>
+<p><span class="math display">\[ W^{2}_{2}(P_A, P_B) = \| \boldsymbol{\mu}_A - \boldsymbol{\mu}_B \|^{2}_{2} + \text{tr}\left( \boldsymbol{\Sigma}_A + \boldsymbol{\Sigma}_B - 2\left( \boldsymbol{\Sigma}_{A}^{\frac{1}{2}} \boldsymbol{\Sigma}_B \boldsymbol{\Sigma}_{A}^{\frac{1}{2}} \right)^{\frac{1}{2}} \right) \]</span></p>
+<p>where <span class="math inline">\(\boldsymbol{\mu}_A\)</span> and <span class="math inline">\(\boldsymbol{\mu}_B\)</span> are the mean vectors for <span class="math inline">\(P_A\)</span> and <span class="math inline">\(P_B\)</span> respectively, <span class="math inline">\(\boldsymbol{\Sigma}_A\)</span> and <span class="math inline">\(\boldsymbol{\Sigma}_B\)</span> are the variance-covariance matrices for <span class="math inline">\(P_A\)</span> and <span class="math inline">\(P_B\)</span> respectively, the trace of a square matrix is the sum of its diagonal, and <span class="math inline">\(M^{\frac{1}{2}}\)</span> gives the matrix square root, which is defined by <span class="math inline">\(S \cdot S = M\)</span>.</p>
+</section>
+<section id="wasserstein-applied-to-datasets" class="slide level2">
+<h2>2-Wasserstein Applied to Datasets</h2>
+<p>We can use this analytic form to compute a dataset distance metric under the following conditions:</p>
+<ol type="1">
+<li>The datasets <span class="math inline">\(\mathcal{D}_A\)</span> and <span class="math inline">\(\mathcal{D}_B\)</span> are drawn from commensurate feature spaces (Euclidean distance is well-defined between any two observations in each dataset)</li>
+<li>We assume the features of the two datasets <span class="math inline">\(\mathcal{D}_A\)</span> and <span class="math inline">\(\mathcal{D}_B\)</span> both follow gaussian distributions</li>
+</ol>
+<p>Where these conditions are met, we can compute the means and variance-covariance matrices from the features of both datasets, and compute <span class="math inline">\(W^{2}_{2}\)</span> as a dataset distance metric.</p>
+<!-- Condition (1) turns out to be reasonable on toy datasets such as CIFAR-10 or MNIST, because these datasets contain images with a fixed number of dimensions (pixel RGB values). However, as we shall see, it turns out to be unreasonable yet difficult to relax in more realistic settings.
+
+The assumption in condition (2) is however much less reasonable, albeit it turns out to be reasonably easy to drop if we are willing to compute the optimal transport solution in the discrete setting. -->
+</section>
+<section id="discrete-solution" class="slide level2">
+<h2>Discrete Solution</h2>
+<p>There <strong>is</strong> a defined solution to the Kantorovich formulation for discrete distributions, however. We will rewrite the formulation as:</p>
+<p><span class="math display">\[ \langle \boldsymbol{C}, \boldsymbol{T} \rangle = \inf_{\boldsymbol{T} \in \Pi(\boldsymbol{a}, \boldsymbol{b})} \sum^n_{i=1} \sum^m_{j=1} \boldsymbol{C}_{ij} \boldsymbol{T}_{ij} \]</span></p>
+<p>where <span class="math inline">\(\boldsymbol{a}\)</span> and <span class="math inline">\(\boldsymbol{b}\)</span> are vectors representing discrete probability distributions (more on this in a moment), <span class="math inline">\(\boldsymbol{C}\)</span> is a cost matrix defining the cost of moving an element of <span class="math inline">\(\boldsymbol{a}\)</span> to <span class="math inline">\(\boldsymbol{b}\)</span> (or vice versa), and <span class="math inline">\(\boldsymbol{T}\)</span> is a <em>transport matrix</em> between <span class="math inline">\(\boldsymbol{a}\)</span> and <span class="math inline">\(\boldsymbol{b}\)</span>, and <span class="math inline">\(\langle \boldsymbol{C}, \boldsymbol{T} \rangle\)</span> is the total cost.</p>
+<!-- Important to understand is that this is the discrete version of the Kantorovich formulation, with the sum of cost times probability replacing the integral of cost weighed by probability but being otherwise identical. The elements of the cost matrix are themselves determined by the cost function you choose. -->
+</section>
+<section id="discretising-input-data-i" class="slide level2">
+<h2>Discretising Input Data I</h2>
+<!-- Since we need discrete distributions, we'll often need to convert data into a discrete format. We have two options for how we go about preparing $\boldsymbol{a}$ and $\boldsymbol{b}$. The first option is to make histograms. We put our data into bins, where each bin corresponds to the probability of values in a particular region. Of course, if our data are already discrete, then we don't even need to make bins and can use the counts or proportions directly.
+
+At first glance this sounds like it applies only to the case where we are comparing single-dimensional discrete distributions. However, each bin in the histograms $\boldsymbol{a}$ and $\boldsymbol{b}$ represents a region of the $\mathbb{R}^{k}$ feature space. So for comparing k-dimensional distributions, a single point on the histogram corresponds to an $\mathbb{R}^{k}$ region (for example, the first bin captures the probability that all colour values in all pixels will be between 0 and 8 inclusive, where we have chosen bins of size 8 and are working in pixel space). Note three important implications:
+
+1. The number of bins grows exponentially with the number of features in our dataset, making binning harder as this increases
+2. This is explicitly parameterised by how coarse-grained we wish our bins to be
+3. The elements of the cost matrix should take into account the specific cost of transferring between the regions represented by each histogram, meaning the order of the bins of the histogram does not matter (this is also where we have retained condition (1)) -->
+</section>
+<section id="discretising-input-data-ii" class="slide level2">
+<h2>Discretising Input Data II</h2>
+<div class="columns">
+<div class="column" style="width:70%;">
+<!-- We might therefore want to find an approach with avoids this combinatorial explosion and hyperparameterisation. A more common approach is to treat our samples as Dirac delta functions. A Dirac delta function $\delta(x-a)$ has a value of 0 everywhere except at the point $a$, meaning its properties are:
+
+$$ \delta(x-a) = 0 \; \text{for} \; x \neq a, \;\;\; \int{\delta(x-a)dx} = 1 $$
+
+What treating our samples as Dirac delta functions means _in practice_ is that given $N$ samples $x_1, x_2, \cdots x_N$, our empirical probability distribution can be represented as:
+
+$$ \hat{P} = \frac{1}{N}\sum^{N}_{i=1}\delta(x-x_i) $$
+
+In plainer language, we just say that every sample has probability mass $\frac{1}{N}$ and all other regions have probability mass 0 and each data point forms its own bin in the histogram. Given two datasets $\mathcal{D}_1$ and $\mathcal{D}_2$ with $N_1$ and $N_2$ observations respectively, $\boldsymbol{a}$ would be a vector of length $N_1$ where each element has the value $\frac{1}{N_1}$, and $\boldsymbol{b}$ would be a vector of length $N_2$ where each element has the value $\frac{1}{N_2}$. The transport plan $\boldsymbol{T}$ will be an $N_1 \times N_2$ matrix.
+
+This works for optimal transport because the cost matrix will preserve information about distances between data points. So even where our individual samples are k-dimensional vectors with continuous elements, this will work. This is usually what is meant by 'discretising' the data in optimal transport papers, which can be a bit misleading if you are used to 'discretise' meaning 'make continuous data disceret' and not 'just assign samples the same probability'. For the rest of this post you can assume that this is the approach taken to computing the discrete solution to optimal transport.
+
+It is worth pointing out that we have subtly moved from treating our datasets as being drawn from probability distributions which we are trying to represent, towards treating the OT problem as being about moving mass between the points of one dataset and another. In the histogram approach we are trying to represent a continuous distribution from which the dataset has been sampled, in this approach the dataset _is_ the distribution.
+
+Beyond consequences for interpretation, this move also means that our optimal transport problem will now scale with the number of samples, rather than the number of features, but the shared feature space between the two datasets is essential. -->
+</div><div class="column" style="width:30%;">
+
+</div></div>
+</section>
+<section id="solving-the-discrete-ot-problem" class="slide level2">
+<h2>Solving the Discrete OT Problem</h2>
+<p>Because <span class="math inline">\(\boldsymbol{a}\)</span> and <span class="math inline">\(\boldsymbol{b}\)</span> should be marginal distributions of <span class="math inline">\(\boldsymbol{T}\)</span>, we have the constraints:</p>
+<p><span class="math display">\[ \begin{align}
+    \boldsymbol{T}\boldsymbol{1} = \boldsymbol{a}\\
+    \boldsymbol{T}'\boldsymbol{1} = \boldsymbol{b}
+\end{align} \]</span></p>
+<p>Where <span class="math inline">\(\boldsymbol{1}\)</span> is an vector of 1s of the same length as one of the dimensions of <span class="math inline">\(\boldsymbol{T}\)</span>. What these constraints say is that summing the matrix in a particular direction should produce its marginal.</p>
+<p>A final constraint is that we cannot add or subtract mass, we can only move it. To enforce this, we have the further constraint:</p>
+<p><span class="math display">\[ \forall \: i,j \; \boldsymbol{T}_{ij} \geq 0 \]</span></p>
+<p>With these constraints, we have a well-defined <em><a href="https://en.wikipedia.org/wiki/Linear_programming">linear programming</a></em> or <em>linear optimisation</em> problem. These involve finding a vector or matrix (such as our transport matrix) which maximises or minimises an equation (such as our total cost) subject to constraints (such as those we have just defined). This is sufficient for imperative instruction on how to compute optimal transport in the discrete setting, and so apply it as a distance metric in this setting.</p>
+<p>How linear programming solvers work is beyond the scope of this blog post. However, linear programming solvers are available in python in general form via the <code>linprog</code> function in <a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.linprog.html"><code>scipy.optimize</code></a>, and in optimal transport-specific form via the <a href="https://pythonot.github.io/"><code>POT</code></a> library.</p>
+<p>They are likewise available in R in general form via the <a href="https://cran.r-project.org/web/packages/linprog/index.html"><code>linprog</code></a> library, or in optimal transport-specific form via the <code>Wasserstein</code> function in the <a href="https://cran.r-project.org/web/packages/T4transport/index.html"><code>T4transport</code></a> library. Many other languages also contain implementations of solvers. Worth mentioning for historical interest is that linear programming was originally developed by Kantorovich for the purpose of solving optimal transport problems[^kantorovich_again].</p>
+</section>
+<section id="regularisation-and-sinkhorn-distance" class="slide level2">
+<h2>Regularisation and Sinkhorn Distance</h2>
+<p>Solving linear programming problems however turns out to scale cubically ($ O(n^3 n) $) as the input dimensions increase. It is therefore common in practice to use an entropy regularisation term[^sinkhorn]:</p>
+<p><span class="math display">\[ \inf_{\boldsymbol{T} \in \Pi(\boldsymbol{a}, \boldsymbol{b})} \langle \boldsymbol{C}, \boldsymbol{T} \rangle - \epsilon H(\boldsymbol{T}) \]</span></p>
+<p>where $H()$ is the entropy of the transport matrix:</p>
+<p><span class="math display">\[ H\left(\boldsymbol{T}\right) = - \sum^{n}_{i}\sum^{n}_{j} \boldsymbol{T}_{ij} \log \boldsymbol{T}_{ij} \]</span></p>
+<p>and <span class="math inline">\(\epsilon\)</span> is a regularisation parameter controlling the strength of the regularisation term. The regularisation term punishes transportation plans which are too concenrated, encouraging a more diffuse plan. This might seem odd at first as this runs counter to the notion of <em>optimal</em> transport. However, note two things. First, as <span class="math inline">\(\epsilon \rightarrow 0\)</span>, then this will converge on the true optimal transport solution. Second, including the regularisation term enables much easier computation of the optimal transport distance.</p>
+<p>Introducing the term means that the optimal transport matrix <span class="math inline">\(\boldsymbol{T}^*\)</span> can now be given by:</p>
+<p><span class="math display">\[ \boldsymbol{T}^* = \text{diag}(\boldsymbol{u})\boldsymbol{K}\text{diag}(\boldsymbol{v}) \]</span></p>
+<p>where <span class="math inline">\(\boldsymbol{K}\)</span> is given by</p>
+<p><span class="math display">\[ \boldsymbol{K} = e^{-\boldsymbol{C}/\epsilon} \]</span></p>
+<p>which is to say it is computed by exponentiating the negative of each element of <span class="math inline">\(\boldsymbol{C}\)</span> divided by <span class="math inline">\(\epsilon\)</span>. Note that as elements of <span class="math inline">\(\boldsymbol{C}\)</span> become smaller (and they should not be negative if we have chosen a distance metric), then these entries become large in <span class="math inline">\(\boldsymbol{K}\)</span>, while large costs become small in <span class="math inline">\(\boldsymbol{K}\)</span> (due to the negative exponentiation). As epsilon becomes larger, it will make <span class="math inline">\(\boldsymbol{K}\)</span> more diffuse, which is how it achieves regularisation of the transport plan.</p>
+<p><span class="math inline">\(\boldsymbol{u}\)</span> and <span class="math inline">\(\boldsymbol{v}\)</span> are vectors chosen to satisfy the marginal constraints from before, <span class="math inline">\(\boldsymbol{T}\boldsymbol{1} = \boldsymbol{a}\)</span> and <span class="math inline">\(\boldsymbol{T}'\boldsymbol{1} = \boldsymbol{b}\)</span>. We can find them by performing coordinate descent, setting</p>
+<p><span class="math display">\[ \boldsymbol{u} \leftarrow \frac{\boldsymbol{a}}{\boldsymbol{K}\boldsymbol{v}}, \boldsymbol{v} \leftarrow \frac{\boldsymbol{b}}{\boldsymbol{K}'\boldsymbol{u}} \]</span></p>
+<p>where the divisions are element-wise.</p>
+<p>Convergence is usually assessed in one of two ways. First, we can check that the marginal constraints are satisfied to some tolerance <span class="math inline">\(\delta\)</span> to see if</p>
+<p><span class="math display">\[ \boldsymbol{u} \odot \left( \boldsymbol{Kv} \right) \approx \boldsymbol{a} \]</span></p>
+<p>where <span class="math inline">\(\odot\)</span> refers to element-wise multiplication.</p>
+<p>Alternatively, it is also possible to assess the amount of change in <span class="math inline">\(\boldsymbol{u}\)</span> or <span class="math inline">\(\boldsymbol{v}\)</span> between iterations, although this is less principled and does not guarantee that the marginal constraints are satisfied:</p>
+<p><span class="math display">\[ \| \boldsymbol{u}^{(t)} - \boldsymbol{u}^{(t-1)} \|_1 \leq \delta \]</span></p>
+<p>When computing the optimal transport plan and distance in this way, the output distance is sometimes called the Sinkhorn distance, as the algorithm used to compute it is the Sinkhorn-Knopp matrix scaling algorithm. Unlike the original linear programming problem, it scales at <span class="math inline">\(O(n^2)\)</span>, and so is a significant speedup over the original in terms of compute cost. There is often in practice a trade-off between the choice of epsilon and the compute cost involved.</p>
+<p>For some reason, the Sinkhorn distance is often written in continuous terms as (note the plus is used due to the negatives cancelling out):</p>
+<p><span class="math display">\[ \inf_{\pi \in \Pi(P_A, P_B)}{\int{c(x,x')d\pi(x, x')} + \epsilon H(\pi | P_A \otimes P_B)} \]</span></p>
+<p>and the formula for entropy is also often given in continuous terms. However, whenever anyone is speaking about regularised optimal transport, they are addressing the discrete setting. This will, as we shall see, become important for understanding some of the dataset similarity-specific metrics.</p>
+</section>
+<section id="sinkhorn-divergence" class="slide level2">
+<h2>Sinkhorn Divergence</h2>
+<p>Because our entropy regularisation forces the transport plan to be more diffuse, our optimal transport distance is now an over-estimate of actual distributional distance. The Sinkhorn divergence[^sinkhorn_divergence] (sometimes called the debiased Sinkhorn distance) addresses this problem, and is estimated as:</p>
+<p><span class="math display">\[ \text{SD}_{\epsilon}\left(P_A, P_B\right) = \text{OT}_{\epsilon}\left(P_A, P_B\right) - \frac{1}{2}\text{OT}_{\epsilon}\left(P_A, P_A\right) - \frac{1}{2}\text{OT}_{\epsilon}\left(P_B, P_B\right) \]</span></p>
+<p>where <span class="math inline">\(\text{OT}_{\epsilon}\)</span> is the Sinkhorn distance estimated with a given value of <span class="math inline">\(\epsilon\)</span>.</p>
+<p>The intuition is that the Sinkhorn distance strictly speaking is not a metric because the distance of a distribution from itself will be greater than 0 if <span class="math inline">\(\epsilon &gt; 0\)</span>. The Sinkhorn divergence restores this property as <span class="math inline">\(\text{SD}_{\epsilon}\left(P_A, P_A\right) = 0\)</span> by construction (because we subtract half of each self-transport cost, which cancels exactly when both inputs are the same). However, this comes at the expense of needing to compute the OT distance three times over.</p>
+<p>In Python the Sinkhorn distance is implemented in the <code>sinkhorn</code> function in the <a href="https://pythonot.github.io/"><code>POT</code></a> library, and similarly via the <code>SamplesLoss</code> class (setting <code>loss="sinkhorn"</code> when instantiating) in the <a href="https://www.kernel-operations.io/geomloss/"><code>geomloss</code></a> library. The latter of these also directly handles sinkhorn divergences by setting <code>debias=True</code>, but note that having a sinkhorn distance is on its own sufficient to compute the divergence. The <a href="https://github.com/ot-triton-lab/flash-sinkhorn"><code>flash-sinkhorn</code></a> library claims to implement a faster version of the same class. In R the Sinkhorn distance is implemented in the <code>sinkhorn</code> function in the <a href="https://cran.r-project.org/web/packages/T4transport/index.html"><code>T4transport</code></a> library.</p>
+</section></section>
+<section>
+<section id="optimal-transport-dataset-distance" class="title-slide slide level1 center">
+<h1>Optimal Transport Dataset Distance</h1>
+
+</section>
+<section id="the-problem-we-want-to-solve" class="slide level2">
+<h2>The Problem We Want to Solve</h2>
+<p>Direct application of optimal transport on these datasets turns out to be challenging. The problem is selecting a cost function with which to construct our cost matrix. If we had distance metrics <span class="math inline">\(d_{\mathcal{X}}(x, x')\)</span> for defining distance between points in <span class="math inline">\(\mathcal{X}\)</span>, and <span class="math inline">\(d_{\mathcal{Y}}(y,y')\)</span> for defining distance between points in <span class="math inline">\(\mathcal{Y}\)</span>, then we would have a distance metric between points in <span class="math inline">\(\mathcal{Z}\)</span>:</p>
+<p><span class="math display">\[ d_{\mathcal{Z}}(z, z') = \sqrt[p]{\left(d_{\mathcal{X}}(x, x')^p + d_{\mathcal{Y}}(y, y')^p\right)} \]</span></p>
+<p>Unfortunately, while there are many candidates for <span class="math inline">\(d_{\mathcal{X}}\)</span> such as the euclidean distance, metrics between labels are rarer. When we have continuous labels (as in regression problems) we could simply use the euclidean distance for these two, but in typical supervised learning settings we have labels such as <code>"cat"</code> and <code>"car"</code> between which there is no meaningful distance metric. The problem is exacerbated if the labels are entirely disjoint.</p>
+</section>
+<section id="the-solution" class="slide level2">
+<h2>The Solution</h2>
+<p>What we do however have is the relationship between the labels and the features underneath them. We can treat the collection of features under a given label</p>
+<p><span class="math display">\[ \mathcal{N}_{\mathcal{D}}(y) := \left\{x \in \mathcal{X} | (x,y) \in \mathcal{D}\right\} \]</span></p>
+<p>as being distributed according to <span class="math inline">\(P_y\)</span>. At this point, given two distributions <span class="math inline">\(P_{y}\)</span> and <span class="math inline">\(P_{y'}\)</span> for the labels <span class="math inline">\(y\)</span> and <span class="math inline">\(y'\)</span>, we can compute the optimal transport distance between these distributions using the finite samples <span class="math inline">\(\mathcal{N}_{\mathcal{D}}(y)\)</span> and <span class="math inline">\(\mathcal{N}\_{\mathcal{D}}(y')\)</span>.</p>
+<p>Our distance metric <span class="math inline">\(d_{\mathcal{Z}}\)</span> is therefore given by:</p>
+<p><span class="math display">\[ d_{\mathcal{Z}}((x,y), (x',y')) = \sqrt[p]{\left(d_{\mathcal{X}}(x, x')^p + \text{OT}(P_{y}, P_{y'})^p\right)} \]</span></p>
+<p>Note that in this equation, OT is used to define a point-wise distance between two labels, <span class="math inline">\(y\)</span> and <span class="math inline">\(y'\)</span>, and that <span class="math inline">\(d_{\mathcal{Z}}\)</span> itself simply computes the distance between two samples <span class="math inline">\((x,y)\)</span> and <span class="math inline">\((x',y')\)</span>. We can now however use this distance metric as a cost function in optimal transport, computing the optimal transport dataset distance as:</p>
+<p><span class="math display">\[ d_{\text{OT}}\left(\mathcal{D}_A, \mathcal{D}_B\right) = \inf_{\pi \in \Pi(P_A, P_B)}{\int{d_{\mathcal{Z}}(z,z')d\pi(z, z')}} \]</span></p>
+<p>where <span class="math inline">\(d_{\text{OT}}\)</span> is the optimal transport dataset distance. We call this the outer OT problem, and the pairwise label distances the inner OT problem (or problems). Note that in this formulation, we have allowed for entirely disjoint label sets: only the feature space needs to be shared between datasets.</p>
+</section>
+<section id="otdd" class="slide level2">
+<h2>OTDD</h2>
+<p>In normal settings, the most prohibitive cost is in solving the LP problem. But because we have several inner OT problems, computing the pointwise distances to produce the cost matrix risks being the most computationally prohibitive step in OTDD. As we already know, there are two approaches to computing an OT solution between two collections of features. We can either treat the distributions as gaussian and compute the <span class="math inline">\(W_{2}\)</span> distance, or we can compute a discrete solution, possibly after discretising our features if necessary. Because the latter can be computationally expensive, and OTDD requires computing OT solutions between pairs of labels, the authors opt for the former rather than the latter for the inner OT problem. We label this variant of OTDD as <span class="math inline">\(d_{\text{OT}-\mathcal{N}}\)</span>.</p>
+<p>Although this is only an approximation due to the assumption that features follow a gaussian distribution on the inner OT problem (although it is exact when the assumption is true), this turns out to express a lower bound on the true OTDD solution, because using a gaussian distribution underestimates the true cost and so provides a conservative estimate:</p>
+<p><span class="math display">\[ d_{\text{OT}-\mathcal{N}}\left(\mathcal{D}_A, \mathcal{D}_B\right) \leq d_{\text{OT}}\left(\mathcal{D}_A, \mathcal{D}_B\right) \]</span></p>
+<p><span class="math inline">\(W_2\)</span> as defined requires computing matrix square roots, which requires eigendecomposition to be computed exactly, which is expensive. An alternative is to compute an approximation, and the OTDD authors use the Newton-Schulz iterative method to do this. Their implementation additionally precomputes the pairwise label distances between the two datasets and retrieve them on demand while solving the outer problem.</p>
+<p>At this point, we are free to compute the outer OT problem via linear programming, including via Sinkhorn distance or divergence.</p>
 
 </section></section>
     </div>
@@ -192,7 +453,7 @@ Phil Swatton
 'autoAnimateUnmatched': true,
 'jumpToSlide': true,
 'menu': {"side":"left","useTextContentForMissingTitles":true,"markers":false,"loadIcons":false,"custom":[{"title":"Tools","icon":"<i class=\"fas fa-gear\"></i>","content":"<ul class=\"slide-menu-items\">\n<li class=\"slide-tool-item active\" data-item=\"0\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.fullscreen(event)\"><kbd>f</kbd> Fullscreen</a></li>\n<li class=\"slide-tool-item\" data-item=\"1\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.speakerMode(event)\"><kbd>s</kbd> Speaker View</a></li>\n<li class=\"slide-tool-item\" data-item=\"2\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.overview(event)\"><kbd>o</kbd> Slide Overview</a></li>\n<li class=\"slide-tool-item\" data-item=\"3\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.togglePdfExport(event)\"><kbd>e</kbd> PDF Export Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"4\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.toggleScrollView(event)\"><kbd>r</kbd> Scroll View Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"5\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.keyboardHelp(event)\"><kbd>?</kbd> Keyboard Help</a></li>\n</ul>"}],"openButton":true},
-'smaller': false,
+'smaller': true,
 
         // Display controls in the bottom right corner
         controls: false,
@@ -212,10 +473,10 @@ Phil Swatton
         progress: true,
 
         // Display the page number of the current slide
-        slideNumber: false,
+        slideNumber: 'c/t',
 
         // 'all', 'print', or 'speaker'
-        showSlideNumber: 'all',
+        showSlideNumber: 'print',
 
         // Add the current slide number to the URL hash so that reloading the
         // page/copying the URL will return you to the same slide
