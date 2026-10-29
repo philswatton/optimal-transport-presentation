@@ -1,3 +1,7 @@
 .reveal li:has(> .fragment:not(.visible)) {
   list-style-type: none;
 }
+
+.reveal .small-code pre {
+  font-size: 0.4em;
+}

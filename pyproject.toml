@@ -24,7 +24,9 @@ dependencies = [
     "numpy>=2.5.4",
     "pandas>=3.1.0",
     "plotnine>=0.15.8",
+    "pot>=0.9.7.post1",
     "pyyaml>=6.0.3",
+    "scipy>=1.18.1",
 ]
 
 [dependency-groups]
